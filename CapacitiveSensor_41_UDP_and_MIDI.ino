@@ -243,23 +243,34 @@ void readSensor(int sensorNumber, int midiNote){
       
       Serial.print("touch" + String(sensorNumber) + ": ");
       Serial.println(average[sensorNumber-1]);
-
+     
+      if(sensorNumber == 1 || 2 || 3 || 4){
       sensor1.reset_CS_AutoCal();
       sensor2.reset_CS_AutoCal();
       sensor3.reset_CS_AutoCal();
       sensor4.reset_CS_AutoCal();
+      }
+
+      if(sensorNumber == 5 || 6 || 7 || 8){
       sensor5.reset_CS_AutoCal();
       sensor6.reset_CS_AutoCal();
       sensor7.reset_CS_AutoCal();
       sensor8.reset_CS_AutoCal();
+      }
+      
+      if(sensorNumber == 9 || 10 || 11 || 12){
       sensor9.reset_CS_AutoCal();
       sensor10.reset_CS_AutoCal();
       sensor11.reset_CS_AutoCal();
       sensor12.reset_CS_AutoCal();
+      }
+
+      if(sensorNumber == 13 || 14 || 15 || 16){
       sensor13.reset_CS_AutoCal();
       sensor14.reset_CS_AutoCal();
       sensor15.reset_CS_AutoCal();
       sensor16.reset_CS_AutoCal();
+      }
      
       for(int i; i<8; i++){
          touchFlag[i] = 0;

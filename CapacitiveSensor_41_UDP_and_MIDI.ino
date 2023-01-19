@@ -1,15 +1,11 @@
 #include <CapacitiveSensor.h>
 
 /*
- * CapitiveSense Library Demo Sketch
- * Paul Badger 2008
- * Uses a high value resistor e.g. 10M between send pin and receive pin
- * Resistor effects sensitivity, experiment with values, 50K - 50M. Larger resistor values yield larger sensor values.
+ * Uses a high value resistor e.g. 1M between send pin and receive pin
  * Receive pin is the sensor pin - try different amounts of foil/metal on this pin
  */
+
 #include <elapsedMillis.h>
-
-
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
 
@@ -32,12 +28,10 @@ int touchFlag[sensorCount];
 long total[sensorCount];
 int symbolNum[] = {49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64};
 
-long threshhold = 2500;
-long upperthreshhold = threshhold *2;
+long threshhold = 2500;   ///// Set threshhold here!
 int led = 13;
 const int channel = 1;
 unsigned int interval = 100; 
-
 
 // Define the number of samples to keep track of. The higher the number, the
 // more the readings will be smoothed, but the slower the output will respond to
@@ -129,9 +123,9 @@ void loop()
 {
     /// threshhold knob
     long sensitivity = analogRead(sensitivityKnob);
-    //threshhold = map(sensitivity, 4, 1023, 999, 3000);
+    //threshhold = map(sensitivity, 4, 1023, 999, 3000);  ///enable knob
 
-      // subtract the last reading:
+    // subtract the last reading:
     total[0] = total[0] - readings1[readIndex];
     readings1[readIndex] = sensor1.capacitiveSensor(10);
     total[0] = total[0] + readings1[readIndex];

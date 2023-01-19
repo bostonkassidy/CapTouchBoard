@@ -1,10 +1,8 @@
-#include <CapacitiveSensor.h>
-
 /*
  * Uses a high value resistor e.g. 1M between send pin and receive pin
  * Receive pin is the sensor pin - try different amounts of foil/metal on this pin
  */
-
+#include <CapacitiveSensor.h>
 #include <elapsedMillis.h>
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
@@ -15,8 +13,8 @@ byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 };
 
-IPAddress ip(192, 168, 43, 177);
-IPAddress pc(192, 168, 43, 43);
+IPAddress ip(192, 168, 43, 177); /// teensy ip
+IPAddress pc(192, 168, 43, 43); /// computer ip
 
 unsigned int localPort = 8888;      // local port to listen on
 

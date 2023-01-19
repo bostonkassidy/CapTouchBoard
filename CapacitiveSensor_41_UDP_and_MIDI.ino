@@ -147,7 +147,7 @@ void loop()
     total[3] = total[3] - readings4[readIndex];
     readings4[readIndex] = sensor4.capacitiveSensor(30);
     total[3] = total[3] + readings4[readIndex];
-/*
+
     total[4] = total[4] - readings5[readIndex];
     readings5[readIndex] = sensor5.capacitiveSensor(30);
     total[4] = total[4] + readings5[readIndex];
@@ -195,7 +195,7 @@ void loop()
     total[15] = total[15] - readings16[readIndex];
     readings16[readIndex] = sensor16.capacitiveSensor(30);
     total[15] = total[15] + readings16[readIndex];
-  */  
+  
     readIndex = readIndex + 1;
 
     // if we're at the end of the array...
@@ -227,18 +227,18 @@ for(int i = 0; i <= sensorCount-1; i++){
   readSensor(2, 61);
   readSensor(3, 62);
   readSensor(4, 63);
-  //readSensor(5, 64);
-  //readSensor(6, 65);
-  //readSensor(7, 66);
-  //readSensor(8, 67);
-  //readSensor(9, 68);
-  //readSensor(10, 69);
-  //readSensor(11, 70);
-  //readSensor(12, 71);
-  //readSensor(13, 72);
-  //readSensor(14, 73);
-  //readSensor(15, 74);
-  //readSensor(16, 75);
+  readSensor(5, 64);
+  readSensor(6, 65);
+  readSensor(7, 66);
+  readSensor(8, 67);
+  readSensor(9, 68);
+  readSensor(10, 69);
+  readSensor(11, 70);
+  readSensor(12, 71);
+  readSensor(13, 72);
+  readSensor(14, 73);
+  readSensor(15, 74);
+  readSensor(16, 75);
   delay(50);
 
   while (usbMIDI.read()) {

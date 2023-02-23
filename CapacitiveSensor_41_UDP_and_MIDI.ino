@@ -1,8 +1,11 @@
+
+#include <CapacitiveSensor.h>
+
 /*
  * Uses a high value resistor e.g. 1M between send pin and receive pin
+ * Resistor effects sensitivity, experiment with values, 50K - 50M. Larger resistor values yield larger sensor values.
  * Receive pin is the sensor pin - try different amounts of foil/metal on this pin
  */
-#include <CapacitiveSensor.h>
 #include <elapsedMillis.h>
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
@@ -13,8 +16,8 @@ byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 };
 
-IPAddress ip(192, 168, 43, 177); /// teensy ip
-IPAddress pc(192, 168, 43, 43); /// computer ip
+IPAddress ip(192, 168, 43, 177);
+IPAddress pc(192, 168, 43, 43);
 
 unsigned int localPort = 8888;      // local port to listen on
 
@@ -26,10 +29,15 @@ int touchFlag[sensorCount];
 long total[sensorCount];
 int symbolNum[] = {49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64};
 
-long threshhold = 2500;   ///// Set threshhold here!
+long threshhold = 1500;
+long upperThreshhold = threshhold+1000;
+int sensorPower = 10;
+
 int led = 13;
 const int channel = 1;
 unsigned int interval = 100; 
+
+int resetTime = 30 * 1000; ///30 seconds
 
 // Define the number of samples to keep track of. The higher the number, the
 // more the readings will be smoothed, but the slower the output will respond to
@@ -55,7 +63,6 @@ int readings15[numReadings];
 int readings16[numReadings];
 
 int readIndex = 0;              // the index of the current reading
-//int total1 = 0;                  // the running total
 int average[numReadings];                // the average
 
 #define sensitivityKnob A17
@@ -77,12 +84,16 @@ CapacitiveSensor   sensor14 = CapacitiveSensor(16,17);
 CapacitiveSensor   sensor15 = CapacitiveSensor(28,29);
 CapacitiveSensor   sensor16 = CapacitiveSensor(30,31);
 
+elapsedMillis lastTouched;
+
+void(* resetFunc) (void) = 0;//declare reset function
+
 void setup()                    
 {
    Serial.begin(9600);
    pinMode(led, OUTPUT);
    Ethernet.begin(mac, ip);
-
+/*
    // Check for Ethernet hardware present
   if (Ethernet.hardwareStatus() == EthernetNoHardware) {
     Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
@@ -90,6 +101,8 @@ void setup()
       delay(1); // do nothing, no point running without Ethernet hardware
     }
   }
+*/
+
   if (Ethernet.linkStatus() == LinkOFF) {
     Serial.println("Ethernet cable is not connected.");
   }
@@ -121,73 +134,73 @@ void loop()
 {
     /// threshhold knob
     long sensitivity = analogRead(sensitivityKnob);
-    //threshhold = map(sensitivity, 4, 1023, 999, 3000);  ///enable knob
+    //threshhold = map(sensitivity, 4, 1023, 999, 3000);
 
-    // subtract the last reading:
+      // subtract the last reading:
     total[0] = total[0] - readings1[readIndex];
-    readings1[readIndex] = sensor1.capacitiveSensor(10);
+    readings1[readIndex] = sensor1.capacitiveSensor(sensorPower);
     total[0] = total[0] + readings1[readIndex];
 
     total[1] = total[1] - readings2[readIndex];
-    readings2[readIndex] = sensor2.capacitiveSensor(10);
+    readings2[readIndex] = sensor2.capacitiveSensor(sensorPower);
     total[1] = total[1] + readings2[readIndex];
 
     total[2] = total[2] - readings3[readIndex];
-    readings3[readIndex] = sensor3.capacitiveSensor(30);
+    readings3[readIndex] = sensor3.capacitiveSensor(sensorPower);
     total[2] = total[2] + readings3[readIndex];
 
     total[3] = total[3] - readings4[readIndex];
-    readings4[readIndex] = sensor4.capacitiveSensor(30);
+    readings4[readIndex] = sensor4.capacitiveSensor(sensorPower);
     total[3] = total[3] + readings4[readIndex];
 
     total[4] = total[4] - readings5[readIndex];
-    readings5[readIndex] = sensor5.capacitiveSensor(30);
+    readings5[readIndex] = sensor5.capacitiveSensor(sensorPower);
     total[4] = total[4] + readings5[readIndex];
 
     total[5] = total[5] - readings6[readIndex];
-    readings6[readIndex] = sensor6.capacitiveSensor(30);
+    readings6[readIndex] = sensor6.capacitiveSensor(sensorPower);
     total[5] = total[5] + readings6[readIndex];
 
     total[6] = total[6] - readings7[readIndex];
-    readings7[readIndex] = sensor7.capacitiveSensor(30);
+    readings7[readIndex] = sensor7.capacitiveSensor(sensorPower);
     total[6] = total[6] + readings7[readIndex];
 
     total[7] = total[7] - readings8[readIndex];
-    readings8[readIndex] = sensor8.capacitiveSensor(30);
+    readings8[readIndex] = sensor8.capacitiveSensor(sensorPower);
     total[7] = total[7] + readings8[readIndex];
 
     total[8] = total[8] - readings9[readIndex];
-    readings9[readIndex] = sensor9.capacitiveSensor(30);
+    readings9[readIndex] = sensor9.capacitiveSensor(sensorPower);
     total[8] = total[8] + readings9[readIndex];
 
     total[9] = total[9] - readings10[readIndex];
-    readings10[readIndex] = sensor10.capacitiveSensor(30);
+    readings10[readIndex] = sensor10.capacitiveSensor(sensorPower);
     total[9] = total[9] + readings10[readIndex];
 
     total[10] = total[10] - readings11[readIndex];
-    readings11[readIndex] = sensor11.capacitiveSensor(30);
+    readings11[readIndex] = sensor11.capacitiveSensor(sensorPower);
     total[10] = total[10] + readings11[readIndex];
 
     total[11] = total[11] - readings12[readIndex];
-    readings12[readIndex] = sensor12.capacitiveSensor(30);
+    readings12[readIndex] = sensor12.capacitiveSensor(sensorPower);
     total[11] = total[11] + readings12[readIndex];
 
     total[12] = total[12] - readings13[readIndex];
-    readings13[readIndex] = sensor13.capacitiveSensor(30);
+    readings13[readIndex] = sensor13.capacitiveSensor(sensorPower);
     total[12] = total[12] + readings13[readIndex];
 
     total[13] = total[13] - readings14[readIndex];
-    readings14[readIndex] = sensor14.capacitiveSensor(30);
+    readings14[readIndex] = sensor14.capacitiveSensor(sensorPower);
     total[13] = total[13] + readings14[readIndex];
 
     total[14] = total[14] - readings15[readIndex];
-    readings15[readIndex] = sensor15.capacitiveSensor(30);
+    readings15[readIndex] = sensor15.capacitiveSensor(sensorPower);
     total[14] = total[14] + readings15[readIndex];
 
     total[15] = total[15] - readings16[readIndex];
-    readings16[readIndex] = sensor16.capacitiveSensor(30);
+    readings16[readIndex] = sensor16.capacitiveSensor(sensorPower);
     total[15] = total[15] + readings16[readIndex];
-  
+
     readIndex = readIndex + 1;
 
     // if we're at the end of the array...
@@ -201,8 +214,13 @@ void loop()
     average[i] = total[i] / numReadings;
     }
 
-//// Uncomment for setup
+    ////Inactivity Reset
+   // if(lastTouched > resetTime){ /// 30seconds
+      //CalibrateAll();
+      //lastTouched = 0;
+      //}   
 
+//// Serial Monitor
 for(int i = 0; i <= sensorCount-1; i++){
   Serial.print(i+1);
   Serial.print(":");
@@ -211,10 +229,11 @@ for(int i = 0; i <= sensorCount-1; i++){
   if(i == sensorCount-1){
      Serial.print("threshhold: " + String(threshhold));
      Serial.println("\t");
-     delay(10);
+     delay(50);
     }
   }
- 
+
+////RUN THA FUNCTIONS
   readSensor(1, 60);
   readSensor(2, 61);
   readSensor(3, 62);
@@ -233,17 +252,26 @@ for(int i = 0; i <= sensorCount-1; i++){
   readSensor(16, 75);
   delay(50);
 
+  if (Ethernet.linkStatus() == LinkOFF) {
+    Serial.print("resetting");
+    resetFunc();
+  }
+
   while (usbMIDI.read()) {
     // ignore incoming messages
   }
 }
 
 void readSensor(int sensorNumber, int midiNote){
-   if (average[sensorNumber-1] > threshhold && touchFlag[sensorNumber-1] == 0){
+   if (average[sensorNumber-1] > threshhold && average[sensorNumber-1] < upperThreshhold && touchFlag[sensorNumber-1] == 0){
       
       Serial.print("touch" + String(sensorNumber) + ": ");
-      Serial.println(average[sensorNumber-1]);
-     
+      Serial.print(average[sensorNumber-1]);
+      Serial.print("\t");
+      Serial.println("threshhold: " + String(threshhold));
+
+      lastTouched = 0;
+
       if(sensorNumber == 1 || 2 || 3 || 4){
       sensor1.reset_CS_AutoCal();
       sensor2.reset_CS_AutoCal();
@@ -271,7 +299,7 @@ void readSensor(int sensorNumber, int midiNote){
       sensor15.reset_CS_AutoCal();
       sensor16.reset_CS_AutoCal();
       }
-     
+      
       for(int i; i<8; i++){
          touchFlag[i] = 0;
         }
@@ -280,6 +308,7 @@ void readSensor(int sensorNumber, int midiNote){
       ///Send UDP
       Udp.beginPacket(pc, 8888);
       Udp.write(symbolNum[sensorNumber-1]);
+      //Udp.write(average[sensorNumber-1]);
       Udp.endPacket();
 
       ///Send MIDI ON
@@ -300,5 +329,23 @@ void readSensor(int sensorNumber, int midiNote){
     if (average[sensorNumber-1] < threshhold){
       touchFlag[sensorNumber-1] = 0;
       }
+  }
 
+void CalibrateAll(){
+      sensor1.reset_CS_AutoCal();
+      sensor2.reset_CS_AutoCal();
+      sensor3.reset_CS_AutoCal();
+      sensor4.reset_CS_AutoCal();  
+      sensor5.reset_CS_AutoCal();
+      sensor6.reset_CS_AutoCal();
+      sensor7.reset_CS_AutoCal();
+      sensor8.reset_CS_AutoCal(); 
+      sensor9.reset_CS_AutoCal();
+      sensor10.reset_CS_AutoCal();
+      sensor11.reset_CS_AutoCal();
+      sensor12.reset_CS_AutoCal();  
+      sensor13.reset_CS_AutoCal();
+      sensor14.reset_CS_AutoCal();
+      sensor15.reset_CS_AutoCal();
+      sensor16.reset_CS_AutoCal();
   }

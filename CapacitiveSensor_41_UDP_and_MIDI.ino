@@ -1,4 +1,3 @@
-
 #include <CapacitiveSensor.h>
 
 /*
@@ -24,14 +23,21 @@ unsigned int localPort = 8888;      // local port to listen on
 // An EthernetUDP instance to let us send and receive packets over UDP
 EthernetUDP Udp;
 
-const int sensorCount = 16;
+bool EnableMonitor = false; /// See realtime averaged values in serial monitor
+bool MaxMonitor = false; //// Prints the Maximum values. Use to set threshhold
+
+const int sensorCount = 8;
 int touchFlag[sensorCount];
 long total[sensorCount];
-int symbolNum[] = {49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64};
+int biggest[sensorCount];
+char symbol[] = {'a','s','d','f','q','w','e','r'};
+//{'Q','W','E','R','A','S','D','F','Z','X','C','V'};
 
-long threshhold = 1500;
-long upperThreshhold = threshhold+1000;
+long threshhold = 3500;
+long upperThreshhold = threshhold+2000;
 int sensorPower = 10;
+
+int lastSensor;
 
 int led = 13;
 const int channel = 1;
@@ -43,7 +49,7 @@ int resetTime = 30 * 1000; ///30 seconds
 // more the readings will be smoothed, but the slower the output will respond to
 // the input. Using a constant rather than a normal variable lets us use this
 // value to determine the size of the readings array.
-const int numReadings = 3;
+const int numReadings = 8;
 
 int readings1[numReadings];      // the readings from the analog input
 int readings2[numReadings];
@@ -53,17 +59,17 @@ int readings5[numReadings];
 int readings6[numReadings];
 int readings7[numReadings];
 int readings8[numReadings];
-int readings9[numReadings];
-int readings10[numReadings];
-int readings11[numReadings];
-int readings12[numReadings];
-int readings13[numReadings];
-int readings14[numReadings];
-int readings15[numReadings];
-int readings16[numReadings];
+//int readings9[numReadings];
+//int readings10[numReadings];
+//int readings11[numReadings];
+//int readings12[numReadings];
+//int readings13[numReadings];
+//int readings14[numReadings];
+//int readings15[numReadings];
+//int readings16[numReadings];
 
 int readIndex = 0;              // the index of the current reading
-int average[numReadings];                // the average
+int average[sensorCount];                // the average
 
 #define sensitivityKnob A17
 
@@ -75,14 +81,14 @@ CapacitiveSensor   sensor5 = CapacitiveSensor(10,11);
 CapacitiveSensor   sensor6 = CapacitiveSensor(12,32);
 CapacitiveSensor   sensor7 = CapacitiveSensor(24,25);
 CapacitiveSensor   sensor8 = CapacitiveSensor(26,27);
-CapacitiveSensor   sensor9 = CapacitiveSensor(33,34);
-CapacitiveSensor   sensor10 = CapacitiveSensor(35,36);
-CapacitiveSensor   sensor11 = CapacitiveSensor(37,38);
-CapacitiveSensor   sensor12 = CapacitiveSensor(39,40);
-CapacitiveSensor   sensor13 = CapacitiveSensor(14,15);
-CapacitiveSensor   sensor14 = CapacitiveSensor(16,17);
-CapacitiveSensor   sensor15 = CapacitiveSensor(28,29);
-CapacitiveSensor   sensor16 = CapacitiveSensor(30,31);
+//CapacitiveSensor   sensor9 = CapacitiveSensor(33,34);
+//CapacitiveSensor   sensor10 = CapacitiveSensor(35,36);
+//CapacitiveSensor   sensor11 = CapacitiveSensor(37,38);
+//CapacitiveSensor   sensor12 = CapacitiveSensor(39,40);
+//CapacitiveSensor   sensor13 = CapacitiveSensor(14,15);
+//CapacitiveSensor   sensor14 = CapacitiveSensor(16,17);
+//CapacitiveSensor   sensor15 = CapacitiveSensor(28,29);
+//CapacitiveSensor   sensor16 = CapacitiveSensor(30,31);
 
 elapsedMillis lastTouched;
 
@@ -92,8 +98,10 @@ void setup()
 {
    Serial.begin(9600);
    pinMode(led, OUTPUT);
-   Ethernet.begin(mac, ip);
-/*
+   
+   Serial.println("Waiting for Connection");
+Ethernet.begin(mac, ip);
+
    // Check for Ethernet hardware present
   if (Ethernet.hardwareStatus() == EthernetNoHardware) {
     Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
@@ -101,14 +109,15 @@ void setup()
       delay(1); // do nothing, no point running without Ethernet hardware
     }
   }
-*/
 
   if (Ethernet.linkStatus() == LinkOFF) {
     Serial.println("Ethernet cable is not connected.");
+  } else {
+    Serial.println("Hardware Starting");
   }
 
   // start UDP
-  Udp.begin(localPort);   
+  Udp.begin(localPort); 
 
    for (int thisReading = 0; thisReading < numReadings; thisReading++) {
     readings1[thisReading] = 0;
@@ -119,14 +128,14 @@ void setup()
     readings6[thisReading] = 0;
     readings7[thisReading] = 0;
     readings8[thisReading] = 0;
-    readings9[thisReading] = 0;
-    readings10[thisReading] = 0;
-    readings11[thisReading] = 0;
-    readings12[thisReading] = 0;
-    readings13[thisReading] = 0;
-    readings14[thisReading] = 0;
-    readings15[thisReading] = 0;
-    readings16[thisReading] = 0;
+    //readings9[thisReading] = 0;
+    //readings10[thisReading] = 0;
+    //readings11[thisReading] = 0;
+    //readings12[thisReading] = 0;
+    //readings13[thisReading] = 0;
+    //readings14[thisReading] = 0;
+    //readings15[thisReading] = 0;
+    //readings16[thisReading] = 0;
   }
 }
       
@@ -168,7 +177,7 @@ void loop()
     total[7] = total[7] - readings8[readIndex];
     readings8[readIndex] = sensor8.capacitiveSensor(sensorPower);
     total[7] = total[7] + readings8[readIndex];
-
+/*
     total[8] = total[8] - readings9[readIndex];
     readings9[readIndex] = sensor9.capacitiveSensor(sensorPower);
     total[8] = total[8] + readings9[readIndex];
@@ -184,7 +193,7 @@ void loop()
     total[11] = total[11] - readings12[readIndex];
     readings12[readIndex] = sensor12.capacitiveSensor(sensorPower);
     total[11] = total[11] + readings12[readIndex];
-
+x
     total[12] = total[12] - readings13[readIndex];
     readings13[readIndex] = sensor13.capacitiveSensor(sensorPower);
     total[12] = total[12] + readings13[readIndex];
@@ -200,7 +209,7 @@ void loop()
     total[15] = total[15] - readings16[readIndex];
     readings16[readIndex] = sensor16.capacitiveSensor(sensorPower);
     total[15] = total[15] + readings16[readIndex];
-
+*/
     readIndex = readIndex + 1;
 
     // if we're at the end of the array...
@@ -221,6 +230,7 @@ void loop()
       //}   
 
 //// Serial Monitor
+if (EnableMonitor == true){
 for(int i = 0; i <= sensorCount-1; i++){
   Serial.print(i+1);
   Serial.print(":");
@@ -228,29 +238,48 @@ for(int i = 0; i <= sensorCount-1; i++){
   Serial.print("\t");
   if(i == sensorCount-1){
      Serial.print("threshhold: " + String(threshhold));
+     Serial.print("\t");
+     Serial.print("Last sensor touched: ");
+    Serial.println(lastSensor);
+     delay(10);
+    }
+  }
+}
+
+if (MaxMonitor == true){
+for(int i = 0; i <= sensorCount-1; i++){
+  if(average[i] > biggest[i]){
+    biggest[i] = average[i];
+  }
+  Serial.print(i+1);
+  Serial.print(":");
+  Serial.print(biggest[i]);
+  Serial.print("\t");
+    if(i == sensorCount-1){
      Serial.println("\t");
      delay(50);
     }
   }
+}
 
 ////RUN THA FUNCTIONS
-  readSensor(1, 60);
-  readSensor(2, 61);
-  readSensor(3, 62);
-  readSensor(4, 63);
-  readSensor(5, 64);
-  readSensor(6, 65);
-  readSensor(7, 66);
-  readSensor(8, 67);
-  readSensor(9, 68);
-  readSensor(10, 69);
-  readSensor(11, 70);
-  readSensor(12, 71);
-  readSensor(13, 72);
-  readSensor(14, 73);
-  readSensor(15, 74);
-  readSensor(16, 75);
-  delay(50);
+  readSensor(1, 60, threshhold);
+  readSensor(2, 61, threshhold);
+  readSensor(3, 62, threshhold);
+  readSensor(4, 63, threshhold);
+  readSensor(5, 64, threshhold);
+  readSensor(6, 65, threshhold);
+  readSensor(7, 66, threshhold);
+  readSensor(8, 67, threshhold);
+  //readSensor(9, 68, threshhold);
+  //readSensor(10, 69, threshhold);
+  //readSensor(11, 70, threshhold);
+  //readSensor(12, 71, threshhold);
+  //readSensor(13, 72);
+  //readSensor(14, 73);
+  //readSensor(15, 74);
+  //readSensor(16, 75);
+  //delay(50);
 
   if (Ethernet.linkStatus() == LinkOFF) {
     Serial.print("resetting");
@@ -262,13 +291,17 @@ for(int i = 0; i <= sensorCount-1; i++){
   }
 }
 
-void readSensor(int sensorNumber, int midiNote){
-   if (average[sensorNumber-1] > threshhold && average[sensorNumber-1] < upperThreshhold && touchFlag[sensorNumber-1] == 0){
+void readSensor(int sensorNumber, int midiNote, int thr){
+   if (average[sensorNumber-1] > thr && average[sensorNumber-1] < upperThreshhold && touchFlag[sensorNumber-1] == 0){
+
+
+    lastSensor = sensorNumber;
       
       Serial.print("touch" + String(sensorNumber) + ": ");
       Serial.print(average[sensorNumber-1]);
       Serial.print("\t");
-      Serial.println("threshhold: " + String(threshhold));
+      Serial.print("threshhold: " + String(threshhold));
+      Serial.println("\t");
 
       lastTouched = 0;
 
@@ -286,43 +319,27 @@ void readSensor(int sensorNumber, int midiNote){
       sensor8.reset_CS_AutoCal();
       }
       
-      if(sensorNumber == 9 || 10 || 11 || 12){
-      sensor9.reset_CS_AutoCal();
-      sensor10.reset_CS_AutoCal();
-      sensor11.reset_CS_AutoCal();
-      sensor12.reset_CS_AutoCal();
-      }
-
-      if(sensorNumber == 13 || 14 || 15 || 16){
-      sensor13.reset_CS_AutoCal();
-      sensor14.reset_CS_AutoCal();
-      sensor15.reset_CS_AutoCal();
-      sensor16.reset_CS_AutoCal();
-      }
-      
-      for(int i; i<8; i++){
+      for(int i =0 ; i <= sensorCount-1; i++){
          touchFlag[i] = 0;
         }
       touchFlag[sensorNumber-1] = 1;
 
       ///Send UDP
-      Udp.beginPacket(pc, 8888);
-      Udp.write(symbolNum[sensorNumber-1]);
-      //Udp.write(average[sensorNumber-1]);
+      Udp.beginPacket(pc, localPort);
+      Udp.write(symbol[sensorNumber-1]);
       Udp.endPacket();
 
       ///Send MIDI ON
-      usbMIDI.sendNoteOn(midiNote, 127, channel);  // 60 = C4
+      //usbMIDI.sendNoteOn(midiNote, 127, channel);  // 60 = C4
 
       ///Flash LED
       elapsedMillis timeElapsed;
       while(timeElapsed < interval){
-      //setPixel(sensorNumber ,0, 0, 255);
       digitalWrite(led, HIGH);
       }      
 
       ///Send MIDI OFF
-      usbMIDI.sendNoteOff(midiNote, 0, channel);  // 60 = C4
+      //usbMIDI.sendNoteOff(midiNote, 0, channel);  // 60 = C4
       digitalWrite(led, LOW);
     }
     
@@ -340,12 +357,12 @@ void CalibrateAll(){
       sensor6.reset_CS_AutoCal();
       sensor7.reset_CS_AutoCal();
       sensor8.reset_CS_AutoCal(); 
-      sensor9.reset_CS_AutoCal();
-      sensor10.reset_CS_AutoCal();
-      sensor11.reset_CS_AutoCal();
-      sensor12.reset_CS_AutoCal();  
-      sensor13.reset_CS_AutoCal();
-      sensor14.reset_CS_AutoCal();
-      sensor15.reset_CS_AutoCal();
-      sensor16.reset_CS_AutoCal();
+      //sensor9.reset_CS_AutoCal();
+      //sensor10.reset_CS_AutoCal();
+      //sensor11.reset_CS_AutoCal();
+      //sensor12.reset_CS_AutoCal();  
+      //sensor13.reset_CS_AutoCal();
+      //sensor14.reset_CS_AutoCal();
+      //sensor15.reset_CS_AutoCal();
+      //sensor16.reset_CS_AutoCal();
   }
